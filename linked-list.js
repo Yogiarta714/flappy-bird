@@ -120,7 +120,7 @@ window.onload = function () {
   bottomPipeImg.src = "./flappy-bird/bottompipe.png";
 
   requestAnimationFrame(update);
-  setInterval(placePipes, 1500);
+  setInterval(placePipes, 800);
   setInterval(animateBird, 100);
   document.addEventListener("keydown", moveBird);
   board.addEventListener("click", moveBird);
@@ -159,7 +159,9 @@ function update() {
     if (!pair.passed && bird.x > pair.top.x + pair.top.width) {
       score++;
       pair.passed = true;
-      pointSound.play();
+      if (score % 10 === 0) {
+        pointSound.play();
+      }
     }
 
     if (detectCollision(bird, pair.top) || detectCollision(bird, pair.bottom)) {
