@@ -9,8 +9,6 @@ let birdWidth = boardWidth / 25;
 let birdHeight = birdWidth * (34 / 44);
 let birdX = boardWidth / 8;
 let birdY = boardHeight / 2;
-let birdImgs = [];
-let birdImgsIndex = 0;
 
 let bird = {
   x: birdX,
@@ -42,7 +40,7 @@ let pointSound = new Audio("./audio/sfx_point.wav");
 let bgm = new Audio("./audio/bgm_mario.mp3");
 bgm.loop = true;
 
-// Linked List Optimal
+// Pipes Linked List
 class PipePair {
   constructor(topPipe, bottomPipe) {
     this.top = topPipe;
@@ -92,7 +90,48 @@ class PipeLinkedList {
 
 let pipeList = new PipeLinkedList();
 
-// responsive on resize
+// Bird Frame Circular Linked List
+class BirdFrameNode {
+  constructor(img) {
+    this.img = img;
+    this.next = null;
+  }
+}
+
+class CircularBirdFrames {
+  constructor() {
+    this.current = null;
+  }
+
+  append(img) {
+    const newNode = new BirdFrameNode(img);
+    if (!this.current) {
+      this.current = newNode;
+      newNode.next = this.current; // circular ke dirinya sendiri
+    } else {
+      let temp = this.current;
+      while (temp.next !== this.current) {
+        temp = temp.next;
+      }
+      temp.next = newNode;
+      newNode.next = this.current;
+    }
+  }
+
+  nextFrame() {
+    if (this.current) {
+      this.current = this.current.next;
+    }
+  }
+
+  getCurrentFrame() {
+    return this.current ? this.current.img : null;
+  }
+}
+
+let birdFrameList = new CircularBirdFrames();
+
+// Responsive Board
 window.addEventListener("resize", () => {
   boardWidth = window.innerWidth;
   boardHeight = window.innerHeight;
@@ -100,7 +139,7 @@ window.addEventListener("resize", () => {
   board.height = boardHeight;
 });
 
-// setup
+// Setup
 window.onload = function () {
   board = document.getElementById("board");
   board.height = boardHeight;
@@ -110,7 +149,7 @@ window.onload = function () {
   for (let i = 0; i < 4; i++) {
     let birdImg = new Image();
     birdImg.src = `./flappy-bird/flappybird${i}.png`;
-    birdImgs.push(birdImg);
+    birdFrameList.append(birdImg);
   }
 
   topPipeImg = new Image();
@@ -120,13 +159,13 @@ window.onload = function () {
   bottomPipeImg.src = "./flappy-bird/bottompipe.png";
 
   requestAnimationFrame(update);
-  setInterval(placePipes, 800);
+  setInterval(placePipes, 850);
   setInterval(animateBird, 100);
   document.addEventListener("keydown", moveBird);
   board.addEventListener("click", moveBird);
 };
 
-// game loop
+// Loop Update
 function update() {
   requestAnimationFrame(update);
   if (gameOver) return;
@@ -136,7 +175,7 @@ function update() {
   // bird physics
   velocityY += gravity;
   bird.y = Math.max(bird.y + velocityY, 0);
-  context.drawImage(birdImgs[birdImgsIndex], bird.x, bird.y, bird.width, bird.height);
+  context.drawImage(birdFrameList.getCurrentFrame(), bird.x, bird.y, bird.width, bird.height);
 
   if (bird.y > board.height) {
     gameOver = true;
@@ -188,10 +227,12 @@ function update() {
   }
 }
 
+// Animasi Burung (Circular Linked List)
 function animateBird() {
-  birdImgsIndex = (birdImgsIndex + 1) % birdImgs.length;
+  birdFrameList.nextFrame();
 }
 
+// Membuat Pipa
 function placePipes() {
   if (gameOver) return;
 
@@ -220,7 +261,7 @@ function placePipes() {
 
 function moveBird(e) {
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyX" || e.type === "click") {
-    if ((e.code === "Space", "ArrowUp")) {
+    if (e.code === "Space" || e.code === "ArrowUp") {
       e.preventDefault();
     }
 
@@ -242,6 +283,7 @@ function moveBird(e) {
   }
 }
 
+// Mendeteksi Tabrakan
 function detectCollision(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
