@@ -40,7 +40,7 @@ let pointSound = new Audio("./audio/sfx_point.wav");
 let bgm = new Audio("./audio/bgm_mario.mp3");
 bgm.loop = true;
 
-// Pipes Linked List
+// Linked List for Pipes
 class PipePair {
   constructor(topPipe, bottomPipe) {
     this.top = topPipe;
@@ -90,7 +90,7 @@ class PipeLinkedList {
 
 let pipeList = new PipeLinkedList();
 
-// Bird Frame Circular Linked List
+// Circular Linked List for Bird Frames
 class BirdFrameNode {
   constructor(img) {
     this.img = img;
@@ -107,7 +107,7 @@ class CircularBirdFrames {
     const newNode = new BirdFrameNode(img);
     if (!this.current) {
       this.current = newNode;
-      newNode.next = this.current; // circular ke dirinya sendiri
+      newNode.next = this.current;
     } else {
       let temp = this.current;
       while (temp.next !== this.current) {
@@ -131,7 +131,7 @@ class CircularBirdFrames {
 
 let birdFrameList = new CircularBirdFrames();
 
-// Responsive Board
+// Responsive Resize
 window.addEventListener("resize", () => {
   boardWidth = window.innerWidth;
   boardHeight = window.innerHeight;
@@ -158,6 +158,7 @@ window.onload = function () {
   bottomPipeImg = new Image();
   bottomPipeImg.src = "./flappy-bird/bottompipe.png";
 
+  lastTime = performance.now();
   requestAnimationFrame(update);
   setInterval(placePipes, 850);
   setInterval(animateBird, 100);
@@ -165,26 +166,33 @@ window.onload = function () {
   board.addEventListener("click", moveBird);
 };
 
-// Loop Update
-function update() {
+// Game loop with deltaTime
+let lastTime = 0;
+
+function update(timestamp) {
   requestAnimationFrame(update);
   if (gameOver) return;
 
+  let deltaTime = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
   context.clearRect(0, 0, board.width, board.height);
 
-  // bird physics
-  velocityY += gravity;
-  bird.y = Math.max(bird.y + velocityY, 0);
+  // Physics
+  velocityY += gravity * deltaTime * 60;
+  bird.y = Math.max(bird.y + velocityY * deltaTime * 60, 0);
+
   context.drawImage(birdFrameList.getCurrentFrame(), bird.x, bird.y, bird.width, bird.height);
 
   if (bird.y > board.height) {
     gameOver = true;
   }
 
-  // pipe logic
+  // Pipes
   pipeList.forEach((pair) => {
-    pair.top.x += velocityX;
-    pair.bottom.x += velocityX;
+    const deltaX = velocityX * deltaTime * 60;
+    pair.top.x += deltaX;
+    pair.bottom.x += deltaX;
 
     context.drawImage(pair.top.img, pair.top.x, pair.top.y, pair.top.width, pair.top.height);
     context.drawImage(
@@ -211,28 +219,37 @@ function update() {
 
   pipeList.removeOffScreenPipes();
 
-  // score
+  drawScore();
+}
+
+function drawScore() {
+  const scoreFontSize = boardWidth * 0.05;
+  const gameOverFontSize = boardWidth * 0.08;
+
   context.strokeStyle = "black";
   context.lineWidth = 5;
+  context.font = `${scoreFontSize}px sans-serif`;
   context.strokeText(score, boardWidth / 2, boardHeight / 6);
   context.fillStyle = "white";
-  context.font = "60px sans-serif";
   context.fillText(score, boardWidth / 2, boardHeight / 6);
 
   if (gameOver) {
-    context.strokeText("GAME OVER", boardWidth / 2.65, boardHeight / 3.5);
-    context.fillText("GAME OVER", boardWidth / 2.65, boardHeight / 3.5);
+    context.font = `${gameOverFontSize}px sans-serif`;
+    const gameOverText = "GAME OVER";
+    const textWidth = context.measureText(gameOverText).width;
+    const x = (boardWidth - textWidth) / 2;
+    const y = boardHeight / 3.5;
+    context.strokeText(gameOverText, x, y);
+    context.fillText(gameOverText, x, y);
     bgm.pause();
     bgm.currentTime = 0;
   }
 }
 
-// Animasi Burung (Circular Linked List)
 function animateBird() {
   birdFrameList.nextFrame();
 }
 
-// Membuat Pipa
 function placePipes() {
   if (gameOver) return;
 
@@ -265,10 +282,7 @@ function moveBird(e) {
       e.preventDefault();
     }
 
-    if (bgm.paused) {
-      bgm.play();
-    }
-
+    if (bgm.paused) bgm.play();
     wingSound.play();
     velocityY = -6;
 
@@ -283,7 +297,6 @@ function moveBird(e) {
   }
 }
 
-// Mendeteksi Tabrakan
 function detectCollision(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
