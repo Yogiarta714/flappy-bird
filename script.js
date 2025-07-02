@@ -198,7 +198,7 @@ function update() {
     if (!pair.passed && bird.x > pair.top.x + pair.top.width) {
       score++;
       pair.passed = true;
-      if (score % 10 === 0) {
+      if (score % 5 === 0) {
         pointSound.play();
       }
     }
